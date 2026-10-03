@@ -5,6 +5,7 @@ export type EntryRow = {
   status: string
   pending: boolean
   abnormal: boolean
+  // 直流异常转入巡视待复查清单时，recheck* 字段用于两条业务线对账与去重
   [field: string]: string | number | boolean
 }
 

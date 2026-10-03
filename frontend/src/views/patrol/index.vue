@@ -18,7 +18,58 @@
       </article>
     </div>
 
-    <p class="status-legend">
+    <!-- 直流系统监测标记异常的蓄电池组进这里：同一组反复上报只保留一条 -->
+    <section class="recheck-card">
+      <header class="recheck-head">
+        <h3>直流异常 · 待复查清单</h3>
+        <span class="recheck-tip">由直流系统监测「标记异常」自动转入；同一组蓄电池反复上报不重复建档</span>
+      </header>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>复查编号</th>
+            <th>所属变电站</th>
+            <th>蓄电池组号</th>
+            <th>单体电压 (V)</th>
+            <th>内阻 (mΩ)</th>
+            <th>监测编号</th>
+            <th>上报日期</th>
+            <th>复查情况</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in recheckRows" :key="String(row.id)" :class="{ 'row-done': row.巡视状态 === '已复查' }">
+            <td>{{ row.巡视编号 }}</td>
+            <td>{{ row.巡视变电站 }}</td>
+            <td>{{ row.recheckGroupNo }}</td>
+            <td>{{ row.recheckVoltage === '' ? '—' : Number(row.recheckVoltage).toFixed(2) }}</td>
+            <td>{{ row.recheckResistance === '' ? '—' : Number(row.recheckResistance).toFixed(2) }}</td>
+            <td>{{ row.recheckCode }}</td>
+            <td>{{ row.巡视日期 }}</td>
+            <td>
+              <span class="recheck-state" :data-state="String(row.巡视状态)">{{ row.巡视状态 }}</span>
+            </td>
+            <td class="row-actions">
+              <button
+                v-if="row.巡视状态 !== '已复查'"
+                class="link"
+                type="button"
+                @click="finishRecheck(row)"
+              >
+                登记复查
+              </button>
+              <span v-else class="recheck-done">已完成复查</span>
+            </td>
+          </tr>
+          <tr v-if="!recheckRows.length">
+            <td colspan="9" class="empty-state">暂无直流异常待复查项，在直流系统监测里标记异常后会自动转来</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <p class="status-legend" style="margin-top: 14px">
       <span v-for="item in statusSummary" :key="item.status" class="legend-item">
         {{ item.status }}：{{ item.count }}
       </span>
@@ -58,13 +109,13 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无设备巡视数据，可先登记巡视记录</td>
+          <td :colspan="columns.length + 2" class="empty-state">暂无人工登记的巡视记录</td>
         </tr>
       </tbody>
     </table>
 
     <footer class="page-foot">
-      <span>共 {{ total }} 条设备巡视记录</span>
+      <span>共 {{ rows.length }} 条巡视记录（直流待复查 {{ recheckRows.length }} 条单列于上方）</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
@@ -75,10 +126,12 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
-  listEntries,
+  filterRows,
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { listRows } from '@/data/local-store'
+import { completeRecheck, listRecheckEntries, syncRecheckFromGroups } from '@/api/dc-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('patrol')
@@ -88,10 +141,16 @@ const statuses = ["待巡视", "巡视中", "已完成", "已上报"]
 const stats = [{"label": "待巡视站点", "value": 0}, {"label": "已完成巡视", "value": 0}, {"label": "本月发现问题数", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
-const total = ref(0)
+const recheckRows = ref<EntryRow[]>([])
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+
+// 人工巡视表不含直流联动转入的行，那些统一在上方待复查清单里管理
+function manualRows(): EntryRow[] {
+  return listRows(meta.key).filter((row) => !row.recheckKey)
+}
+
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,
@@ -122,12 +181,23 @@ function runAction(action: string, row: EntryRow) {
   reload()
 }
 
+function finishRecheck(row: EntryRow) {
+  errorMessage.value = ''
+  const result = completeRecheck(Number(row.id))
+  if (!result.ok) {
+    errorMessage.value = result.message
+    return
+  }
+  reload()
+}
+
 function reload() {
   errorMessage.value = ''
   try {
-    const payload = listEntries(meta.key, filters.value)
-    rows.value = payload.items
-    total.value = payload.total
+    // 进入巡视页再对一次账，保证直流侧新标的异常不漏进清单
+    syncRecheckFromGroups()
+    rows.value = filterRows(manualRows(), filters.value)
+    recheckRows.value = listRecheckEntries()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '设备巡视列表读取失败'
   }
@@ -135,3 +205,15 @@ function reload() {
 
 onMounted(reload)
 </script>
+
+<style scoped>
+.recheck-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.recheck-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.recheck-head h3 { margin: 0; font-size: 15px; }
+.recheck-tip { font-size: 12px; color: var(--muted); }
+.recheck-state { border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+.recheck-state[data-state='待复查'] { background: #fde8e6; color: #b42318; }
+.recheck-state[data-state='已复查'] { background: #e7f6ec; color: #1a7f37; }
+.row-done { color: var(--muted); }
+.recheck-done { font-size: 12px; color: var(--muted); }
+</style>

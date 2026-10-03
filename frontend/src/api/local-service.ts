@@ -1,5 +1,6 @@
 import { MODULE_BY_KEY } from '@/data/modules'
 import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
+import { allDcViews, resetDc, downloadDcGroups, syncRecheckFromGroups } from '@/api/dc-service'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
@@ -57,7 +58,11 @@ export function runAction(key: string, id: number, action: string): ActionResult
 }
 
 export function resetModule(key: string): PageResult {
-  resetRows(key)
+  if (key === 'dcsystem') {
+    resetDc()
+  } else {
+    resetRows(key)
+  }
   return listEntries(key)
 }
 
@@ -72,6 +77,10 @@ export function exportEntries(key: string): { filename: string; content: string 
 }
 
 export function downloadEntries(key: string): void {
+  if (key === 'dcsystem') {
+    downloadDcGroups()
+    return
+  }
   const { filename, content } = exportEntries(key)
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -87,6 +96,16 @@ export function downloadEntries(key: string): void {
 export function loadOverview(): OverviewResult {
   const rows = allRows()
   const modules = [...MODULE_BY_KEY.values()].map((meta) => {
+    // 直流监测按蓄电池组分档，存在独立数据层；待复查的异常组同时计入巡视
+    if (meta.key === 'dcsystem') {
+      const views = allDcViews()
+      return {
+        name: meta.name,
+        created: views.length,
+        pending: views.filter((view) => view.group.status !== '状态正常').length,
+        abnormal: views.filter((view) => view.group.status === '异常告警').length,
+      }
+    }
     const entries = rows[meta.key] ?? []
     return {
       name: meta.name,

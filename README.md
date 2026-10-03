@@ -69,3 +69,19 @@ npm run build
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
 - 想回到初始数据：清掉浏览器里 `substation-protection:entries` 这一项，或调用 `resetModule(模块)`。
+
+## 直流系统监测（按蓄电池组分档）
+
+直流监测与通用台账分开存：
+
+- 数据按**蓄电池组**分档（`data/dc-types.ts` / `data/dc-seed.ts` / `data/dc-store.ts`，
+  localStorage 键 `substation-protection:dc-groups`），每组一条档案，下挂历次监测记录；
+  列表和明细抽屉的单体电压、内阻同取**最近一次监测**记录。
+- 定位筛选在 `api/dc-service.ts` 的 `queryDcGroups()`：所属变电站、蓄电池组号、直流状态
+  多选叠加取交集；单体电压与内阻按起止区间卡闭区间门槛；零命中时逐项回退，报出
+  「单项就 0 组」的卡窄项与「单项有命中、叠加后被挤掉」的组合项。
+- **内阻尺**（内阻上限，mΩ）由直流专责在页面上设定，存于
+  `substation-protection:dc-resistance-ruler`，超限组打「超尺」标记。
+- 「标记异常」把该组幂等写入设备巡视的「直流异常 · 待复查清单」（patrol 行带
+  `recheckKey`，以「变电站|组号」对账）：同一组反复上报只更新同一行，不会长第二条；
+  应用启动与进入巡视页时会用 `syncRecheckFromGroups()` 对账补缺。
