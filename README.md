@@ -67,5 +67,9 @@ npm run build
   `frontend/src/api/local-service.ts`。
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
   `frontend/src/data/seed.ts`。
+- 直流系统监测按「所属变电站 + 蓄电池组号」分档（`frontend/src/data/dc-domain.ts`）：
+  列表与明细都取每档最近一次监测；下拉叠加变电站、组号、直流状态，单体电压与内阻按区间
+  设门槛，零结果会逐项诊断卡窄的条件；内阻告警上限由直流专责在页面上设定；标记异常的组
+  upsert 进设备巡视的「直流异常待复查清单」（独立存于 `localStorage`，同组反复上报不新增）。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
 - 想回到初始数据：清掉浏览器里 `substation-protection:entries` 这一项，或调用 `resetModule(模块)`。

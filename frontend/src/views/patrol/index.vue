@@ -24,6 +24,45 @@
       </span>
     </p>
 
+    <section class="review-block">
+      <header class="review-head">
+        <h3>直流异常蓄电池组 · 待复查清单</h3>
+        <p class="page-desc">直流监测里标成异常的组会进这张单子；同一组反复上报只刷新、不长出第二条，复查后移出待办。</p>
+      </header>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>所属变电站</th>
+            <th>蓄电池组号</th>
+            <th>最近监测日期</th>
+            <th>单体电压 (V)</th>
+            <th>内阻 (mΩ)</th>
+            <th>上报原因</th>
+            <th>上报时间</th>
+            <th>复查操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in pendingReviews" :key="`review-${item.id}`" class="row-abnormal">
+            <td>{{ item.station }}</td>
+            <td>{{ item.groupNo }}</td>
+            <td>{{ item.latestDate }}</td>
+            <td>{{ item.cellVoltage }}</td>
+            <td>{{ item.resistance }}</td>
+            <td>{{ item.reason }}</td>
+            <td>{{ item.reportedAt }}</td>
+            <td class="row-actions">
+              <input v-model="reviewerDraft[item.id]" class="review-input" placeholder="复查人" />
+              <button class="link" type="button" @click="completeReview(item.id)">确认复查</button>
+            </td>
+          </tr>
+          <tr v-if="!pendingReviews.length">
+            <td colspan="8" class="empty-state">待复查清单是空的，直流侧标记异常的蓄电池组会进到这里</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -71,14 +110,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import {
   downloadEntries,
+  listDcPendingReviews,
   listEntries,
   moduleMeta,
+  resolveDcReview,
   runAction as applyAction,
 } from '@/api/local-service'
+import type { DcReviewItem } from '@/data/dc-domain'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('patrol')
@@ -92,12 +134,30 @@ const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+const pendingReviews = ref<DcReviewItem[]>([])
+const reviewerDraft = reactive<Record<number, string>>({})
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+
+function loadReviews() {
+  pendingReviews.value = listDcPendingReviews()
+}
+
+function completeReview(id: number) {
+  errorMessage.value = ''
+  const reviewer = (reviewerDraft[id] ?? '').trim() || '值班管理员'
+  const result = resolveDcReview(id, reviewer)
+  if (!result.ok) {
+    errorMessage.value = result.message
+    return
+  }
+  delete reviewerDraft[id]
+  loadReviews()
+}
 
 function resetFilters() {
   filters.value = {}
@@ -133,5 +193,8 @@ function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  reload()
+  loadReviews()
+})
 </script>

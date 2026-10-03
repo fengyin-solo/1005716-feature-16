@@ -35,3 +35,47 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .error-text { color: #b42318; }
 .status-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
 .legend-item { background: #eef2f7; border-radius: 999px; padding: 2px 10px; }
+.legend-active { background: #dbe8fe; color: var(--brand); }
+
+/* 直流系统监测：定位面板、明细抽屉、内阻尺子 */
+.dc-filter select, .dc-filter input { min-width: 132px; }
+.range-inputs { display: inline-flex; align-items: center; gap: 6px; }
+.range-inputs input { width: 96px; min-width: 0; }
+.range-inputs em { font-style: normal; color: var(--muted); font-size: 12px; }
+.stat-value.hit { color: var(--brand); }
+.stat-value.danger { color: #b42318; }
+.hit-line { margin: 0 0 8px; font-size: 13px; }
+.hit-line strong { color: var(--brand); font-size: 15px; }
+.muted { color: var(--muted); font-size: 12px; }
+.ok-text { color: #067647; }
+.diagnose-panel { background: #fef3f2; border: 1px solid #fecdca; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px; color: #7a271a; }
+.diagnose-panel ul { margin: 6px 0 0; padding-left: 18px; }
+.diagnose-panel li { margin: 4px 0; }
+.diagnose-title { margin: 0; font-weight: 600; }
+.dc-table .metric-warn { color: #b42318; font-weight: 600; }
+.tag-warn { display: inline-block; margin-left: 4px; background: #fee4e2; color: #b42318; border-radius: 4px; padding: 0 6px; font-size: 11px; font-weight: 400; }
+.tag-latest { display: inline-block; margin-left: 6px; background: #dbe8fe; color: var(--brand); border-radius: 4px; padding: 0 6px; font-size: 11px; }
+.row-abnormal td { background: #fffaeb; }
+.row-latest td { background: #f5f8ff; }
+.status-tag { border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+.status-tag[data-status="状态正常"] { background: #dcfae6; color: #067647; }
+.status-tag[data-status="异常告警"] { background: #fee4e2; color: #b42318; }
+.status-tag[data-status="监测中"] { background: #fef0c7; color: #b54708; }
+.status-tag[data-status="待监测"] { background: #eef2f7; color: var(--muted); }
+.danger-link { color: #b42318 !important; }
+.more-bar { text-align: center; margin: 10px 0; }
+.ruler-hint { align-items: center; }
+.drawer-mask { position: fixed; inset: 0; background: rgba(16, 24, 40, 0.45); display: flex; justify-content: flex-end; z-index: 50; }
+.drawer { width: 720px; max-width: 92vw; background: #fff; height: 100%; overflow: auto; padding: 18px 20px; box-shadow: -8px 0 24px rgba(16, 24, 40, 0.2); }
+.drawer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.drawer-head h3 { margin: 0 0 4px; font-size: 16px; }
+.drawer-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; }
+.rule-drawer { width: 420px; }
+.rule-form { display: flex; flex-direction: column; gap: 12px; }
+.rule-form input { min-width: 0; width: 100%; }
+.rule-actions { display: flex; align-items: center; gap: 10px; }
+
+/* 设备巡视：直流异常待复查清单 */
+.review-block { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+.review-head h3 { margin: 0 0 4px; font-size: 15px; }
+.review-input { width: 88px; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 12px; }

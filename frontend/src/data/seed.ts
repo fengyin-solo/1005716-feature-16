@@ -1,4 +1,9 @@
 import type { EntryRow } from './types'
+import { buildDcSeed, DEFAULT_RESISTANCE_RULE } from './dc-domain'
+import type { DcReviewItem, ResistanceRule } from './dc-domain'
+
+// 直流监测按蓄电池组分档生成：一百多组、每组多档监测记录，另附异常组的待复查种子。
+const DC_SEED = buildDcSeed()
 
 // 示例数据：首次打开时播种，之后浏览器里的改动优先，重置才会回到这份。
 export const SEED_ROWS: Record<string, EntryRow[]> = {
@@ -442,50 +447,7 @@ export const SEED_ROWS: Record<string, EntryRow[]> = {
       "设备状态": "断路器维护样例3"
     }
   ],
-  "dcsystem": [
-    {
-      "id": 1,
-      "status": "待监测",
-      "pending": true,
-      "abnormal": false,
-      "监测编号": "DCSY-0001",
-      "所属变电站": "直流系统监测样例1",
-      "蓄电池组号": "直流系统监测样例1",
-      "单体电压": "直流系统监测样例1",
-      "内阻": "直流系统监测样例1",
-      "监测人": "直流系统监测样例1",
-      "监测日期": "2026-09-01",
-      "直流状态": "直流系统监测样例1"
-    },
-    {
-      "id": 2,
-      "status": "监测中",
-      "pending": true,
-      "abnormal": true,
-      "监测编号": "DCSY-0002",
-      "所属变电站": "直流系统监测样例2",
-      "蓄电池组号": "直流系统监测样例2",
-      "单体电压": "直流系统监测样例2",
-      "内阻": "直流系统监测样例2",
-      "监测人": "直流系统监测样例2",
-      "监测日期": "2026-09-02",
-      "直流状态": "直流系统监测样例2"
-    },
-    {
-      "id": 3,
-      "status": "状态正常",
-      "pending": false,
-      "abnormal": false,
-      "监测编号": "DCSY-0003",
-      "所属变电站": "直流系统监测样例3",
-      "蓄电池组号": "直流系统监测样例3",
-      "单体电压": "直流系统监测样例3",
-      "内阻": "直流系统监测样例3",
-      "监测人": "直流系统监测样例3",
-      "监测日期": "2026-09-03",
-      "直流状态": "直流系统监测样例3"
-    }
-  ],
+  "dcsystem": DC_SEED.records,
   "insulationtest": [
     {
       "id": 1,
@@ -795,3 +757,9 @@ export const SEED_ROWS: Record<string, EntryRow[]> = {
     }
   ],
 }
+
+// 直流专责内阻尺子的出厂值，首次打开播种，之后以浏览器里保存的为准。
+export const SEED_RESISTANCE_RULE: ResistanceRule = DEFAULT_RESISTANCE_RULE
+
+// 标记异常的蓄电池组会进设备巡视的待复查清单；这是随直流种子一起带出的初始清单。
+export const SEED_DC_REVIEWS: DcReviewItem[] = DC_SEED.reviews
